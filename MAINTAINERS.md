@@ -72,10 +72,29 @@ gives free credits on signup, but watch usage in the console.
 
 ---
 
-## Scheduled maintenance
+## Dependency hygiene (two layers)
+
+Students should never see deprecation warnings or security advisories on
+deploy. Two automated layers protect against that:
+
+### Layer 1 — Dependabot (immediate, security-focused)
+
+`.github/dependabot.yml` is configured so GitHub:
+- Opens a PR within hours of any **security advisory** affecting our deps
+- Opens a weekly grouped PR for routine minor/patch bumps (capped at 5 open
+  PRs at a time)
+
+This is what catches CVEs like the Next.js 15.1.6 → 15.5.x bump that hit on
+day one. To confirm Dependabot is active, go to the repo on GitHub →
+**Settings → Code security → Dependabot alerts** and **Dependabot security
+updates** should both be enabled (they are by default on public repos).
+
+### Layer 2 — Quarterly Claude Code routine (drift catcher)
 
 A remote Claude Code agent runs **quarterly** to keep dependencies fresh so
-the repo doesn't rot for future student cohorts.
+the repo doesn't rot for future student cohorts. This is the backup for
+non-security drift that Dependabot's grouped PR misses or that you closed
+without merging.
 
 - **Routine name:** `ai-lead-intake-scorer: quarterly dependency check`
 - **Routine ID:** `trig_016oBENATmG11cyDsSLsRJbU`
@@ -135,6 +154,19 @@ When you want to refresh the repo before a new student cohort:
   Showing all three prevents the most common day-one student failure.
 
 ---
+
+## Lessons learned
+
+- **Day-one CVE on Next.js 15.1.6.** The initial scaffold pinned
+  `"next": "15.1.6"` (exact version). Vercel deployed but flagged
+  CVE-2025-66478 with "Action Required". Fix: bumped to `^15.5.15` (caret
+  range, latest stable in the same major) and added Dependabot. Keeping a
+  caret range plus Dependabot means the next CVE gets a PR auto-opened
+  before any student notices.
+- **Don't pin exact versions in a student repo.** Pinning is good for
+  reproducible builds in production app code; for a teaching repo it just
+  guarantees students will eventually `npm install` something flagged as
+  vulnerable. Use `^` ranges and let Dependabot keep the lockfile fresh.
 
 ## Repo metadata
 
