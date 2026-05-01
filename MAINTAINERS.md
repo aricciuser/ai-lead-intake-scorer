@@ -2,7 +2,8 @@
 
 This file is for the person running the course (Anthony) and anyone helping
 operate this capstone repo. Students do not need to read this — they only
-need `README.md`.
+need `README.md`. AI coding assistants (Cursor, Claude Code, Copilot, etc.)
+should read [`AGENTS.md`](./AGENTS.md) before editing any file.
 
 ---
 
@@ -236,11 +237,35 @@ separate routing layer. The progression for the course is:
 
 Each step earns the next one.
 
+### Persistence — student homework
+
+The current capstone discards the form input and the AI's response as
+soon as the student navigates away. That's fine for the lesson, but in
+the real world that lost data is the whole point of a CRM. This is the
+designated **homework extension** for students who want to take the
+capstone further:
+
+> *"Connect the form fields and AI responses to a Google Sheet (or
+> database) so leads and their scores aren't lost. Bonus: build a
+> simple history page that lists past scores."*
+
+Recommended paths, in order of difficulty:
+
+1. **Google Sheets** (easiest) — append a row per scored lead via the
+   Google Sheets API. Good intro to OAuth and external APIs.
+2. **Vercel KV / Upstash Redis** (medium) — fire-and-forget writes from
+   the API route, list-by-recency on a `/history` page.
+3. **Vercel Postgres / Neon** (most realistic) — proper schema, query
+   by date range, foundation for any future feature that needs leads
+   joined to other data.
+
+`AGENTS.md` has a carve-out for this: when a student tells their AI
+assistant they're working on the persistence homework, the AI is
+allowed to add a database/Sheets module — but should keep the addition
+isolated rather than rewriting the existing files.
+
 ### Other ideas
 
-- Save scored leads to a persistent store (Vercel KV or Postgres) and
-  show a history page — this is the natural intro to "your first
-  database" lesson.
 - Add a Resend integration so the draft follow-up message can be sent
   directly from the result screen.
 - A `compare-prompts` mode where the student edits their prompt and the

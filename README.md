@@ -156,8 +156,19 @@ ai-lead-intake-scorer/
 │       ├── anthropic.ts             ← Anthropic / Claude call
 │       └── types.ts                 ← Shared type for both providers
 ├── .env.example                     ← Template for your API key(s)
+├── AGENTS.md                        ← Read this first if you use Cursor / Claude Code / Copilot
+├── CLAUDE.md                        ← Pointer to AGENTS.md (for Claude Code)
 └── README.md                        ← This file
 ```
+
+> **Working with an AI assistant in VS Code (Cursor, Claude Code,
+> Copilot, etc.)?** Open [AGENTS.md](./AGENTS.md) and tell your AI to
+> read it before making changes. It's a short guide that explains which
+> files are safe to edit, which need to be edited together, and the
+> step-by-step recipes for the most common changes (add a form field,
+> add an AI provider, change the scoring rules, etc.). Following it
+> means your AI's edits will work the first time instead of breaking
+> hidden type contracts.
 
 ---
 
