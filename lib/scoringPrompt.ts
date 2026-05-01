@@ -66,6 +66,7 @@ export type Lead = {
   problem: string;
   budget: string;
   timeline: string;
+  notes: string;
 };
 
 export type ScoreResult = {
@@ -151,5 +152,6 @@ Role: ${lead.role}
 Company size: ${lead.companySize}
 Problem they described: ${lead.problem}
 Budget: ${lead.budget || "(not provided)"}
-Timeline: ${lead.timeline || "(not provided)"}`;
+Timeline: ${lead.timeline || "(not provided)"}
+Additional notes: ${lead.notes || "(none)"}`;
 }

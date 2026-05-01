@@ -71,12 +71,20 @@ npm install
 
 This downloads everything the project needs. It takes 30-60 seconds.
 
-### 4. Get a Claude API key
+### 4. Get an AI API key
 
-1. Go to [console.anthropic.com](https://console.anthropic.com)
-2. Sign up or log in
-3. Click **Settings → API Keys → Create Key**
-4. Copy the key (starts with `sk-ant-...`)
+This project supports **two AI providers**. You only need a key for one:
+
+| Provider | Default? | Get a key at | Key starts with |
+|----------|----------|--------------|-----------------|
+| OpenAI / ChatGPT | ✅ Yes | [platform.openai.com/api-keys](https://platform.openai.com/api-keys) | `sk-...` |
+| Anthropic / Claude | No | [console.anthropic.com](https://console.anthropic.com) → Settings → API Keys | `sk-ant-...` |
+
+**The default is OpenAI.** If you want to use Claude instead, you'll set
+`AI_PROVIDER=anthropic` in step 5.
+
+> Both providers have free signup credits. Pick whichever you prefer — the
+> app works the same either way.
 
 ### 5. Add your key
 
@@ -97,7 +105,14 @@ Copy-Item .env.example .env.local
 copy .env.example .env.local
 ```
 
-Open `.env.local` in your editor and paste your key after `ANTHROPIC_API_KEY=`.
+Open `.env.local` in your editor:
+
+- **If you're using OpenAI (default):** paste your key after `OPENAI_API_KEY=`.
+  Leave `AI_PROVIDER=openai` as is.
+- **If you're using Claude:** paste your key after `ANTHROPIC_API_KEY=` and
+  change `AI_PROVIDER=openai` to `AI_PROVIDER=anthropic`.
+
+You can fill in both keys and toggle `AI_PROVIDER` later to compare the two.
 
 > The `.env.local` file is already in `.gitignore`. Never commit it.
 
@@ -123,13 +138,16 @@ ai-lead-intake-scorer/
 │   ├── globals.css                  ← Global styles
 │   └── api/
 │       └── score-lead/
-│           └── route.ts             ← Backend that calls Claude
+│           └── route.ts             ← Backend route (picks the provider)
 ├── components/
 │   ├── LeadForm.tsx                 ← The form fields
 │   └── LeadResult.tsx               ← The result screen
 ├── lib/
-│   └── scoringPrompt.ts             ← THE FILE YOU CUSTOMIZE MOST
-├── .env.example                     ← Template for your API key
+│   ├── scoringPrompt.ts             ← THE FILE YOU CUSTOMIZE MOST
+│   └── providers/
+│       ├── openai.ts                ← OpenAI / ChatGPT call
+│       └── anthropic.ts             ← Anthropic / Claude call
+├── .env.example                     ← Template for your API key(s)
 └── README.md                        ← This file
 ```
 
@@ -222,59 +240,79 @@ internet.
 
 Every time you `git push` to GitHub, Vercel redeploys automatically.
 
-### Add your Claude API key to Vercel
+### Add your AI API key to Vercel
 
 The deployed site will load without a key, but every scoring request will
-fail with `Server is missing ANTHROPIC_API_KEY` until you add the key. Do
-this once per project:
+fail until you add the key for whichever provider you're using.
 
-1. Open [console.anthropic.com](https://console.anthropic.com) →
-   **Settings → API Keys → Create Key**. Copy the `sk-ant-...` value. (You
-   can use the same key you put in your local `.env.local` file, or make a
-   new one just for production.)
-2. In Vercel, go to your project → **Settings → Environment Variables**.
-3. Click **Add New** (or **Add Another**) and fill in:
-   - **Key:** `ANTHROPIC_API_KEY`
-     *(exact name, all caps, no spaces — the app reads `process.env.ANTHROPIC_API_KEY`)*
-   - **Value:** paste the `sk-ant-...` key
-   - **Environments:** check **Production**, **Preview**, and **Development**
-     so it works no matter which branch deploys
-4. Click **Save**.
-5. Vercel does **not** auto-redeploy when you change env vars. Trigger a new
-   deploy:
-   - Go to the **Deployments** tab
-   - Find the most recent deployment, click the **⋯** menu → **Redeploy**
-   - Or push any commit (`git commit --allow-empty -m "trigger redeploy"`)
-6. Wait for the new build to finish (1-2 minutes), then open the live URL
-   and score a test lead. It should work.
+**Step 1 — Decide which provider** the deployed site should use. Default is
+OpenAI. To use Claude, you'll also set `AI_PROVIDER=anthropic` below.
+
+**Step 2 — In Vercel, go to your project → Settings → Environment Variables.**
+
+**Step 3 — Add the variable(s) for your provider.**
+
+For each variable: click **Add New**, fill it in, and check
+**Production**, **Preview**, and **Development** so it works on every
+branch.
+
+| If you're using... | Add this variable | Value |
+|--------------------|-------------------|-------|
+| OpenAI / ChatGPT *(default)* | `OPENAI_API_KEY` | your `sk-...` from [platform.openai.com/api-keys](https://platform.openai.com/api-keys) |
+| Claude (Anthropic) | `ANTHROPIC_API_KEY` | your `sk-ant-...` from [console.anthropic.com](https://console.anthropic.com) |
+| Claude (Anthropic) | `AI_PROVIDER` | `anthropic` (literally that word) |
+
+If you want to use OpenAI you do **not** need to set `AI_PROVIDER` — it
+defaults to `openai`. Only set it when switching to Claude.
+
+**Step 4 — Save each one.**
+
+**Step 5 — Trigger a redeploy.** Vercel does **not** auto-redeploy when you
+change env vars:
+- Go to the **Deployments** tab
+- Find the most recent deployment, click the **⋯** menu → **Redeploy**
+- Or push any commit (`git commit --allow-empty -m "trigger redeploy"`)
+
+**Step 6 — Wait for the new build (~1-2 minutes), then test the live URL.**
+
+**Switching providers later:** to flip from OpenAI to Claude (or back), edit
+the `AI_PROVIDER` variable in Vercel (or add it if you didn't set it), make
+sure the matching API key is also there, save, and redeploy.
 
 > **Security note:** Your API key never appears in the browser. The app keeps
 > it server-side in `app/api/score-lead/route.ts`. Anyone with your live URL
 > can score leads (which costs you a few cents per call), so don't share the
 > URL publicly until you decide that's fine.
 
-> **Rotating the key:** If you ever need to change the key (revoked, leaked,
-> moved to a new account), repeat steps 2-5 — edit the existing variable
-> instead of adding a new one, then redeploy.
+> **Rotating a key:** If you ever need to change a key (revoked, leaked,
+> moved to a new account), edit the existing variable in Vercel instead of
+> adding a new one, then redeploy.
 
 ---
 
 ## Troubleshooting
 
-**"Server is missing ANTHROPIC_API_KEY"**
-→ Make sure you copied `.env.example` to `.env.local` and pasted your real key.
-Restart `npm run dev` after editing the file.
+**"Missing OPENAI_API_KEY" or "Missing ANTHROPIC_API_KEY"**
+→ Make sure you copied `.env.example` to `.env.local` and pasted your real
+key for whichever provider you're using. Restart `npm run dev` after
+editing the file (the dev server only reads `.env.local` at startup).
 
-**"AI error: 401 authentication_error"**
-→ Your key is wrong, copied with extra spaces, or got revoked. Get a new one
-from [console.anthropic.com](https://console.anthropic.com).
+**"401" or "authentication" error**
+→ Your key is wrong, copied with extra spaces, or got revoked. Get a new
+one from [platform.openai.com/api-keys](https://platform.openai.com/api-keys)
+or [console.anthropic.com](https://console.anthropic.com).
+
+**You want to switch providers**
+→ In `.env.local`, change `AI_PROVIDER=openai` to `AI_PROVIDER=anthropic`
+(or the reverse). Make sure the matching API key is also in the file.
+Restart `npm run dev`.
 
 **The score feels wrong**
 → Edit `lib/scoringPrompt.ts`. The AI only knows what you tell it.
 
-**Live Vercel site says "Server is missing ANTHROPIC_API_KEY"**
+**Live Vercel site says "Missing OPENAI_API_KEY" (or ANTHROPIC_API_KEY)**
 → The build deployed but the env variable is not set on Vercel. Follow
-**Add your Claude API key to Vercel** above. Remember to redeploy after
+**Add your AI API key to Vercel** above. Remember to redeploy after
 saving — Vercel does not auto-redeploy when env vars change.
 
 **Page is blank**

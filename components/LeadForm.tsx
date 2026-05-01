@@ -20,6 +20,7 @@ const EMPTY_LEAD: Lead = {
   problem: "",
   budget: "",
   timeline: "",
+  notes: "",
 };
 
 type Props = {
@@ -115,6 +116,13 @@ export function LeadForm({ onResult }: Props) {
         onChange={(v) => update("problem", v)}
       />
 
+      <TextArea
+        label="Notes about the customer (optional)"
+        placeholder="Anything else worth telling the AI: how they found you, what they tried before, who else is involved, red flags, gut feel..."
+        value={lead.notes}
+        onChange={(v) => update("notes", v)}
+      />
+
       {error ? (
         <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded p-3">
           {error}
@@ -171,11 +179,13 @@ function TextArea({
   value,
   onChange,
   required = false,
+  placeholder,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   required?: boolean;
+  placeholder?: string;
 }) {
   return (
     <label className="block">
@@ -187,6 +197,7 @@ function TextArea({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         required={required}
+        placeholder={placeholder}
         rows={4}
         className="w-full rounded border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
       />

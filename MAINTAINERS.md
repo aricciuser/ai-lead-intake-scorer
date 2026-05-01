@@ -11,21 +11,28 @@ A Next.js 15 + Claude API capstone. Students clone it, customize the business
 logic in `lib/scoringPrompt.ts`, push to their own GitHub, and deploy on Vercel.
 
 **Stack**
-- Next.js 15.1, React 19, TypeScript, Tailwind CSS
-- `@anthropic-ai/sdk` (claude-opus-4-7)
+- Next.js 15.5, React 19, TypeScript, Tailwind CSS
+- Two AI providers behind a `lib/providers/` abstraction:
+  - `openai` (default — `gpt-4o`)
+  - `anthropic` (Claude — `claude-opus-4-7`)
 - Vercel for hosting
 
-**Structured output strategy:** the API route uses **forced tool use**
-(`tool_choice: { type: "tool", name: "submit_score" }`) instead of `output_config`.
-Reason: at the time the repo was scaffolded, `output_config` wasn't typed in the
-SDK version we pinned. Forced tool use gives the same JSON-shape guarantee and
-is supported on every SDK version. If you ever upgrade the SDK and want to
-switch to `messages.parse()` with Zod, that's fine — both work.
+**Provider toggle:** `process.env.AI_PROVIDER` picks the implementation at
+request time. Defaults to `openai` if unset. Each provider only requires its
+own key (`OPENAI_API_KEY` or `ANTHROPIC_API_KEY`); students can have only
+one set and the other path will throw a clean error if they try to use it.
 
-**Prompt caching:** the system prompt is wrapped in a text block with
-`cache_control: { type: "ephemeral" }` so repeat scoring calls (same student
-session, same business config) hit the cache. Saves cost and latency once
-students run more than one lead through.
+**Structured output strategy:** both providers use **forced single-function
+tool use** (`tool_choice: { type: "function", function: { name: "submit_score" } }`
+on OpenAI, `tool_choice: { type: "tool", name: "submit_score" }` on Anthropic).
+The function's input schema IS the result shape, so we get reliable JSON
+without prompting tricks. Single source of truth: `SCORE_RESULT_SCHEMA` in
+`lib/scoringPrompt.ts` — both providers consume the same schema.
+
+**Prompt caching (Anthropic only):** the system prompt is wrapped in a text
+block with `cache_control: { type: "ephemeral" }` so repeat Claude calls hit
+the cache. OpenAI's automatic prompt caching kicks in transparently for
+prompts ≥1024 tokens — no client-side flag needed.
 
 ---
 
@@ -154,9 +161,12 @@ When you want to refresh the repo before a new student cohort:
 - **Don't add a database, auth, or user accounts.** This is intentionally a
   one-page tool. The course's framing is "this is your first working tool, not
   the final one" — adding complexity here would defeat that.
-- **Don't change the model from `claude-opus-4-7`** unless a course-cost issue
-  forces it. Opus is the strongest, follow-up message quality is what makes
-  the demo feel real to students.
+- **Don't downgrade the models** (`gpt-4o` and `claude-opus-4-7`) unless a
+  course-cost issue forces it. Follow-up message quality is what makes the
+  demo feel real to students; weaker models produce visibly worse output.
+- **Don't drop the provider abstraction** to "simplify". The two-file
+  `lib/providers/` layer is the whole point of the dual-provider design —
+  collapsing it back into the route ties the project to one vendor again.
 - **Don't unify the env-copy step in the README** to a single command. Mac
   uses `cp`, Windows PowerShell uses `Copy-Item`, Windows CMD uses `copy`.
   Showing all three prevents the most common day-one student failure.

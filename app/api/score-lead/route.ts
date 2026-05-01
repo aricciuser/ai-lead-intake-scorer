@@ -1,16 +1,9 @@
-import Anthropic from "@anthropic-ai/sdk";
 import { NextResponse } from "next/server";
-import {
-  buildSystemPrompt,
-  buildUserPrompt,
-  SCORE_RESULT_SCHEMA,
-  type Lead,
-  type ScoreResult,
-} from "@/lib/scoringPrompt";
+import { scoreLeadWithAnthropic } from "@/lib/providers/anthropic";
+import { scoreLeadWithOpenAI } from "@/lib/providers/openai";
+import type { Lead } from "@/lib/scoringPrompt";
 
 export const runtime = "nodejs";
-
-const client = new Anthropic();
 
 function isValidLead(body: unknown): body is Lead {
   if (!body || typeof body !== "object") return false;
@@ -37,55 +30,32 @@ export async function POST(request: Request) {
     );
   }
 
-  if (!process.env.ANTHROPIC_API_KEY) {
-    return NextResponse.json(
-      { error: "Server is missing ANTHROPIC_API_KEY. Add it to .env.local." },
-      { status: 500 },
-    );
-  }
+  // AI_PROVIDER picks which model service runs the scoring.
+  //   - "openai"    (default) → OpenAI / ChatGPT
+  //   - "anthropic"           → Claude
+  // Set this in .env.local for development and in Vercel env vars for prod.
+  const provider =
+    process.env.AI_PROVIDER === "anthropic" ? "anthropic" : "openai";
+
+  // Ensure full lead with optional fields defaulted to empty strings
+  const fullLead: Lead = {
+    ...lead,
+    budget: (lead as Lead).budget ?? "",
+    timeline: (lead as Lead).timeline ?? "",
+    notes: (lead as Lead).notes ?? "",
+  };
 
   try {
-    // We force the model to call this single tool. Its arguments ARE the
-    // structured result — this gives us reliable JSON shaped to our schema
-    // without any prompt-engineering for output format.
-    const response = await client.messages.create({
-      model: "claude-opus-4-7",
-      max_tokens: 2048,
-      system: [
-        {
-          type: "text",
-          text: buildSystemPrompt(),
-          cache_control: { type: "ephemeral" },
-        },
-      ],
-      messages: [{ role: "user", content: buildUserPrompt(lead) }],
-      tools: [
-        {
-          name: "submit_score",
-          description: "Submit the scoring result for this lead.",
-          input_schema: SCORE_RESULT_SCHEMA as Anthropic.Tool.InputSchema,
-        },
-      ],
-      tool_choice: { type: "tool", name: "submit_score" },
-    });
-
-    const toolUse = response.content.find((block) => block.type === "tool_use");
-    if (!toolUse || toolUse.type !== "tool_use") {
-      return NextResponse.json(
-        { error: "AI did not return a structured score" },
-        { status: 502 },
-      );
-    }
-
-    return NextResponse.json(toolUse.input as ScoreResult);
+    const result =
+      provider === "anthropic"
+        ? await scoreLeadWithAnthropic(fullLead)
+        : await scoreLeadWithOpenAI(fullLead);
+    return NextResponse.json({ ...result, provider });
   } catch (error) {
-    if (error instanceof Anthropic.APIError) {
-      return NextResponse.json(
-        { error: `AI error: ${error.message}` },
-        { status: error.status ?? 500 },
-      );
-    }
     const message = error instanceof Error ? error.message : "Unknown error";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json(
+      { error: `${provider}: ${message}` },
+      { status: 500 },
+    );
   }
 }
