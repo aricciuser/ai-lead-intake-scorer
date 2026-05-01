@@ -1,0 +1,13 @@
+# Normalize line endings on commit so Mac/Linux/Windows checkouts are
+# consistent. Without this, Windows users get CRLF in source files, and
+# git can show every line as changed when collaborating across OSes.
+* text=auto eol=lf
+
+# Binary files — never touch line endings
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.zip binary
