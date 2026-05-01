@@ -207,11 +207,12 @@ Replace `YOUR_USERNAME` and `YOUR_REPO_NAME` with your actual values.
 
 ## Deploy to Vercel
 
+### First-time deploy
+
 1. Go to [vercel.com](https://vercel.com) and sign in with GitHub.
 2. Click **Add New → Project** and pick your repo.
-3. On the configure screen, expand **Environment Variables** and add:
-   - **Name:** `ANTHROPIC_API_KEY`
-   - **Value:** your key (the same `sk-ant-...` from `.env.local`)
+3. On the configure screen, expand **Environment Variables** and add the
+   key (see the section below for the exact steps and values).
 4. Click **Deploy**.
 5. Wait one to two minutes. You will get a public URL like
    `your-project.vercel.app`.
@@ -220,6 +221,41 @@ Open the URL on your phone. Score a lead. That is your tool, live on the
 internet.
 
 Every time you `git push` to GitHub, Vercel redeploys automatically.
+
+### Add your Claude API key to Vercel
+
+The deployed site will load without a key, but every scoring request will
+fail with `Server is missing ANTHROPIC_API_KEY` until you add the key. Do
+this once per project:
+
+1. Open [console.anthropic.com](https://console.anthropic.com) →
+   **Settings → API Keys → Create Key**. Copy the `sk-ant-...` value. (You
+   can use the same key you put in your local `.env.local` file, or make a
+   new one just for production.)
+2. In Vercel, go to your project → **Settings → Environment Variables**.
+3. Click **Add New** (or **Add Another**) and fill in:
+   - **Key:** `ANTHROPIC_API_KEY`
+     *(exact name, all caps, no spaces — the app reads `process.env.ANTHROPIC_API_KEY`)*
+   - **Value:** paste the `sk-ant-...` key
+   - **Environments:** check **Production**, **Preview**, and **Development**
+     so it works no matter which branch deploys
+4. Click **Save**.
+5. Vercel does **not** auto-redeploy when you change env vars. Trigger a new
+   deploy:
+   - Go to the **Deployments** tab
+   - Find the most recent deployment, click the **⋯** menu → **Redeploy**
+   - Or push any commit (`git commit --allow-empty -m "trigger redeploy"`)
+6. Wait for the new build to finish (1-2 minutes), then open the live URL
+   and score a test lead. It should work.
+
+> **Security note:** Your API key never appears in the browser. The app keeps
+> it server-side in `app/api/score-lead/route.ts`. Anyone with your live URL
+> can score leads (which costs you a few cents per call), so don't share the
+> URL publicly until you decide that's fine.
+
+> **Rotating the key:** If you ever need to change the key (revoked, leaked,
+> moved to a new account), repeat steps 2-5 — edit the existing variable
+> instead of adding a new one, then redeploy.
 
 ---
 
@@ -236,9 +272,10 @@ from [console.anthropic.com](https://console.anthropic.com).
 **The score feels wrong**
 → Edit `lib/scoringPrompt.ts`. The AI only knows what you tell it.
 
-**Vercel deploy fails with "ANTHROPIC_API_KEY is missing"**
-→ You forgot to add the env variable in Vercel. Go to your project →
-**Settings → Environment Variables** and add it. Then redeploy.
+**Live Vercel site says "Server is missing ANTHROPIC_API_KEY"**
+→ The build deployed but the env variable is not set on Vercel. Follow
+**Add your Claude API key to Vercel** above. Remember to redeploy after
+saving — Vercel does not auto-redeploy when env vars change.
 
 **Page is blank**
 → Open the browser dev tools (F12) and check the Console tab for errors.

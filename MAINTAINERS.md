@@ -61,10 +61,18 @@ This is the path you (or a student) follow to put a customized version online.
 **Subsequent deploys are automatic.** Every `git push` to the connected branch
 triggers a redeploy. No CLI, no manual step.
 
-**If a deploy fails with "Server is missing ANTHROPIC_API_KEY":** the env var
-wasn't added or wasn't applied to the right environment. Go to **Project →
-Settings → Environment Variables**, add it (or fix the environments it applies
-to), and redeploy from the **Deployments** tab.
+**If the live site says "Server is missing ANTHROPIC_API_KEY":** the build
+deployed but the env var isn't set (or isn't applied to the right environment).
+Fix:
+1. Project → **Settings → Environment Variables**
+2. Add (or edit) `ANTHROPIC_API_KEY` with the `sk-ant-...` value
+3. Check **Production**, **Preview**, AND **Development**
+4. Save, then go to **Deployments** → most recent → **⋯ → Redeploy**
+   (Vercel does NOT auto-redeploy on env var changes — students will hit
+   this. Same fix for them.)
+
+The student-facing version of these steps is in `README.md` under
+**Add your Claude API key to Vercel**.
 
 **Cost note:** Vercel Hobby tier is free and works fine for student traffic.
 Each lead scoring call costs a few cents on the Anthropic side — Anthropic
