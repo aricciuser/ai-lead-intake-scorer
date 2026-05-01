@@ -4,10 +4,10 @@ import { useState } from "react";
 import { LeadForm } from "@/components/LeadForm";
 import { LeadResult } from "@/components/LeadResult";
 import { COMPANY } from "@/lib/scoringPrompt";
-import type { ScoreResult } from "@/lib/scoringPrompt";
+import type { ScoreResponse } from "@/lib/scoringPrompt";
 
 export default function Home() {
-  const [result, setResult] = useState<ScoreResult | null>(null);
+  const [result, setResult] = useState<ScoreResponse | null>(null);
 
   return (
     <main className="min-h-screen px-4 py-12 sm:py-16">

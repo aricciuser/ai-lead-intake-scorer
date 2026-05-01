@@ -57,6 +57,16 @@ Never use the words "synergy", "leverage", or "circle back".
 //  END CUSTOMIZATION ZONE — you usually do not need to edit below
 // ════════════════════════════════════════════════════════════════
 
+// AI providers the app currently supports. Add more here (e.g. "openrouter")
+// when wiring in a new provider — the toggle UI and the API route both read
+// from this union.
+export type Provider = "openai" | "anthropic";
+
+export const PROVIDERS: { value: Provider; label: string }[] = [
+  { value: "openai", label: "ChatGPT" },
+  { value: "anthropic", label: "Claude" },
+];
+
 export type Lead = {
   fullName: string;
   email: string;
@@ -76,6 +86,10 @@ export type ScoreResult = {
   nextStep: string;
   followUpMessage: string;
 };
+
+// What the API returns: the AI's scoring output plus which provider produced
+// it. The provider is added by the route, not by the AI.
+export type ScoreResponse = ScoreResult & { provider: Provider };
 
 export const SCORE_RESULT_SCHEMA = {
   type: "object",

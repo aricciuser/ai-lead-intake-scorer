@@ -80,8 +80,10 @@ This project supports **two AI providers**. You only need a key for one:
 | OpenAI / ChatGPT | ✅ Yes | [platform.openai.com/api-keys](https://platform.openai.com/api-keys) | `sk-...` |
 | Anthropic / Claude | No | [console.anthropic.com](https://console.anthropic.com) → Settings → API Keys | `sk-ant-...` |
 
-**The default is OpenAI.** If you want to use Claude instead, you'll change
-one line of code in step 6 below.
+**You don't have to choose just one.** The app has a **ChatGPT / Claude
+toggle** at the top of the form, so you can switch between providers per
+request. If you only have one key, that's the only side that will work —
+the other will return an error until you add its key.
 
 > Both providers have free signup credits. Pick whichever you prefer — the
 > app works the same either way.
@@ -115,35 +117,19 @@ You can fill in both keys to make switching providers a one-line change later.
 
 > The `.env.local` file is already in `.gitignore`. Never commit it.
 
-### 6. (Optional) Switch the AI provider
-
-The default is OpenAI / ChatGPT. To use Claude instead, open
-`app/api/score-lead/route.ts` and find this line near the top of the file:
-
-```ts
-const AI_PROVIDER: "openai" | "anthropic" = "openai";
-```
-
-Change `"openai"` to `"anthropic"` and save.
-
-That's it — no other code changes needed. The form, prompt, and result UI
-all work identically with both providers.
-
-> **Why a code change instead of a setting?** This is a teaching capstone.
-> Editing the line, committing, and seeing the redeploy is the whole point —
-> it's the same workflow you'd use to ship any production change. Later in
-> the course you'll learn to make this kind of switch dynamic; the manual
-> flow is the foundation.
-
-### 7. Run the app
+### 6. Run the app
 
 ```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). Fill in the form with a
-test lead and click **Score this lead**. You should see a score and follow up
-message in a few seconds.
+Open [http://localhost:3000](http://localhost:3000). At the top of the
+form, pick **ChatGPT** or **Claude**. Fill in the rest, then click
+**Score this lead**. You should see a score and a follow up message in a
+few seconds.
+
+The result screen shows which model scored the lead so you can compare.
+Score the same lead with both to see how they differ.
 
 ---
 
@@ -260,47 +246,37 @@ internet.
 
 Every time you `git push` to GitHub, Vercel redeploys automatically.
 
-### Add your AI API key to Vercel
+### Add your AI API key(s) to Vercel
 
-The deployed site will load without a key, but every scoring request will
-fail until you add the key for whichever provider your code is using.
+The deployed site will load without keys, but every scoring request will
+fail until at least one provider's key is set. Add the key for each
+provider you want to use — students typically add both so they can
+compare ChatGPT and Claude in the live demo.
 
-**Step 1 — Check which provider your code uses.** Open
-`app/api/score-lead/route.ts` and find:
+**Step 1 — In Vercel, go to your project → Settings → Environment Variables.**
 
-```ts
-const AI_PROVIDER: "openai" | "anthropic" = "openai";
-```
+**Step 2 — Add the API key(s).** Click **Add New** for each one:
 
-Whichever string is there is the provider you need a key for. (You can
-add both keys if you want — only the active one is used.)
-
-**Step 2 — In Vercel, go to your project → Settings → Environment Variables.**
-
-**Step 3 — Add the API key.** Click **Add New**, fill in:
-
-| For this provider | Variable name | Value |
-|-------------------|---------------|-------|
+| Provider | Variable name | Value |
+|----------|---------------|-------|
 | OpenAI / ChatGPT | `OPENAI_API_KEY` | your `sk-...` from [platform.openai.com/api-keys](https://platform.openai.com/api-keys) |
 | Anthropic / Claude | `ANTHROPIC_API_KEY` | your `sk-ant-...` from [console.anthropic.com](https://console.anthropic.com) |
 
 For each variable, check **Production**, **Preview**, AND **Development**
 so it works on every branch.
 
-**Step 4 — Save.**
+**Step 3 — Save.**
 
-**Step 5 — Trigger a redeploy.** Vercel does **not** auto-redeploy when you
+**Step 4 — Trigger a redeploy.** Vercel does **not** auto-redeploy when you
 change env vars:
 - Go to the **Deployments** tab
 - Find the most recent deployment, click the **⋯** menu → **Redeploy**
 - Or push any commit (`git commit --allow-empty -m "trigger redeploy"`)
 
-**Step 6 — Wait for the new build (~1-2 minutes), then test the live URL.**
-
-**Switching providers in production:** edit
-`app/api/score-lead/route.ts`, change `"openai"` to `"anthropic"` (or back),
-commit, and push. Vercel auto-redeploys on push, so no manual redeploy
-needed. Just make sure the matching API key is already in Vercel's env vars.
+**Step 5 — Wait for the new build (~1-2 minutes), then test the live URL.**
+Pick a provider in the form's toggle and score a lead. If you only added
+one key, the other side of the toggle will return an error until you add
+its key.
 
 > **Security note:** Your API key never appears in the browser. The app keeps
 > it server-side in `app/api/score-lead/route.ts`. Anyone with your live URL
@@ -326,10 +302,9 @@ one from [platform.openai.com/api-keys](https://platform.openai.com/api-keys)
 or [console.anthropic.com](https://console.anthropic.com).
 
 **You want to switch providers**
-→ Open `app/api/score-lead/route.ts` and change the `AI_PROVIDER` constant
-from `"openai"` to `"anthropic"` (or the reverse). Make sure the matching
-API key is in `.env.local`. Save the file — the dev server reloads
-automatically.
+→ Use the **ChatGPT / Claude** toggle at the top of the form in your
+browser. Make sure the matching API key is in `.env.local` (locally) or
+set in Vercel's env vars (production).
 
 **The score feels wrong**
 → Edit `lib/scoringPrompt.ts`. The AI only knows what you tell it.

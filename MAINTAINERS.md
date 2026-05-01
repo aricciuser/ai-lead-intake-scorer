@@ -44,22 +44,28 @@ Both AI vendors live behind a small interface so the rest of the app stays
 provider-agnostic:
 
 ```
-app/api/score-lead/route.ts          ← picks the provider via constant
+components/LeadForm.tsx              ← user picks provider via UI toggle
+app/api/score-lead/route.ts          ← reads provider from request body
 └── lib/providers/
     ├── openai.ts                    ← scoreLeadWithOpenAI(lead)
     ├── anthropic.ts                 ← scoreLeadWithAnthropic(lead)
     └── types.ts                     ← shared ScoreLeadFn signature
 ```
 
-The toggle is a typed constant at the top of `route.ts`:
+The toggle is a segmented control at the top of the form (ChatGPT /
+Claude). The form sends `provider` in the JSON body; the route validates
+it against the `Provider` union type in `lib/scoringPrompt.ts` and
+dispatches to the matching `lib/providers/*.ts` module.
 
-```ts
-const AI_PROVIDER: "openai" | "anthropic" = "openai";
-```
+The route also has a `DEFAULT_PROVIDER` constant used as a fallback if a
+direct API call omits the `provider` field. The UI always sends one, so
+the default only kicks in for raw API consumers.
 
-To switch vendors: edit the string, commit, push. Vercel auto-redeploys.
-The matching API key (`OPENAI_API_KEY` or `ANTHROPIC_API_KEY`) must already
-be set in Vercel's env vars.
+**Adding a new provider** (e.g. OpenRouter, Gemini): add the value to the
+`Provider` type in `lib/scoringPrompt.ts`, add a label to the `PROVIDERS`
+array in the same file, create a new file in `lib/providers/`, and add a
+case in the route's switch. The toggle UI auto-renders the new option from
+the `PROVIDERS` array — no form changes needed.
 
 ### Structured output
 
@@ -195,34 +201,38 @@ Backlog of intentional next steps for future course iterations. None of
 these are needed for the current capstone to work — they're upgrades for
 later cohorts or follow-on lessons.
 
-### Provider toggle in the UI
+### OpenRouter (third provider)
 
-Today students switch providers by editing
-`app/api/score-lead/route.ts` and redeploying. A future version could add a
-small toggle in the form (`ChatGPT` / `Claude` buttons) so the running app
-demonstrates the switch live without a code change.
+Add OpenRouter as a third option alongside ChatGPT and Claude. OpenRouter
+fronts dozens of models behind one API, so this is the natural step into
+"one app, many models" territory. The provider-abstraction work is already
+done — adding it is mechanical:
 
-**Why later, not now:** the manual edit-commit-deploy loop is the lesson
-in the current cohort. The UI toggle is a follow-on lesson on how to make
-runtime configuration explicit instead of hidden in code.
+1. Add `"openrouter"` to the `Provider` union in `lib/scoringPrompt.ts`
+2. Add a label to the `PROVIDERS` array (the form toggle reads from this)
+3. Create `lib/providers/openrouter.ts` (OpenRouter has an OpenAI-compatible
+   API, so this can largely mirror `openai.ts` with a different `baseURL`)
+4. Add a case in the route's dispatcher
+5. Add `OPENROUTER_API_KEY` to `.env.example` and Vercel
 
 ### Side-by-side comparison mode
 
-A "Score with both" button that fires parallel requests to OpenAI and
-Anthropic and shows the two results next to each other. Useful for course
-demos where the contrast between vendors is the point.
+A "Score with both" button that fires parallel requests to ChatGPT and
+Claude (and OpenRouter, once added) and shows the results next to each
+other. Useful for course demos where the contrast between vendors is the
+whole point.
 
 ### Workflow-determined provider switching
 
-Take it further: the app picks the provider automatically based on rules
-(cost cap, time of day, lead source, etc.) using a separate routing layer.
-This is the natural lesson after the manual toggle and the UI toggle —
-the progression goes:
+Beyond a manual toggle: the app picks the provider automatically based on
+rules (cost cap, time of day, lead source, customer tier, etc.) using a
+separate routing layer. The progression for the course is:
 
-1. Hardcoded in code *(current)*
-2. Toggle in the UI
-3. Rule-based switch in code
-4. External orchestration (AI gateway / router)
+1. Hardcoded in code (early scaffold)
+2. UI toggle *(current)*
+3. Add OpenRouter for many-models access
+4. Rule-based switch in code
+5. External orchestration (AI gateway / model router)
 
 Each step earns the next one.
 

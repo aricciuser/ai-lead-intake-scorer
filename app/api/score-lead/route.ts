@@ -1,22 +1,28 @@
 import { NextResponse } from "next/server";
 import { scoreLeadWithAnthropic } from "@/lib/providers/anthropic";
 import { scoreLeadWithOpenAI } from "@/lib/providers/openai";
-import type { Lead } from "@/lib/scoringPrompt";
+import type { Lead, Provider } from "@/lib/scoringPrompt";
 
 export const runtime = "nodejs";
 
 // ════════════════════════════════════════════════════════════════
-//  AI PROVIDER TOGGLE — change this line to switch vendors
+//  DEFAULT AI PROVIDER
 // ════════════════════════════════════════════════════════════════
+//  Used when the form does not specify which provider to use
+//  (e.g. if you call this API directly without a UI). Students can
+//  override per-request via the toggle in the browser.
+//
 //  Options:
 //    "openai"     → ChatGPT (gpt-4o)
 //    "anthropic"  → Claude (claude-opus-4-7)
 //
-//  After editing, save, commit, push. Vercel auto-redeploys with the
-//  new provider. Make sure the matching API key is set in .env.local
-//  (locally) and in Vercel → Settings → Environment Variables (prod).
+//  To add a new provider (e.g. OpenRouter) later, add it to the
+//  Provider type in lib/scoringPrompt.ts, create a new file in
+//  lib/providers/, and add a case in the switch below.
 // ════════════════════════════════════════════════════════════════
-const AI_PROVIDER: "openai" | "anthropic" = "openai";
+const DEFAULT_PROVIDER: Provider = "openai";
+
+const VALID_PROVIDERS: Provider[] = ["openai", "anthropic"];
 
 function isValidLead(body: unknown): body is Lead {
   if (!body || typeof body !== "object") return false;
@@ -29,28 +35,33 @@ function isValidLead(body: unknown): body is Lead {
 }
 
 export async function POST(request: Request) {
-  let lead: unknown;
+  let body: unknown;
   try {
-    lead = await request.json();
+    body = await request.json();
   } catch {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  if (!isValidLead(lead)) {
+  if (!isValidLead(body)) {
     return NextResponse.json(
       { error: "Missing required lead fields" },
       { status: 400 },
     );
   }
 
-  const provider = AI_PROVIDER;
+  // Pick provider from the request, fall back to the default.
+  const requested = (body as { provider?: unknown }).provider;
+  const provider: Provider =
+    typeof requested === "string" && VALID_PROVIDERS.includes(requested as Provider)
+      ? (requested as Provider)
+      : DEFAULT_PROVIDER;
 
   // Ensure full lead with optional fields defaulted to empty strings
   const fullLead: Lead = {
-    ...lead,
-    budget: (lead as Lead).budget ?? "",
-    timeline: (lead as Lead).timeline ?? "",
-    notes: (lead as Lead).notes ?? "",
+    ...body,
+    budget: (body as Lead).budget ?? "",
+    timeline: (body as Lead).timeline ?? "",
+    notes: (body as Lead).notes ?? "",
   };
 
   try {

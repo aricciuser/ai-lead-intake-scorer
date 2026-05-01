@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { Lead, ScoreResult } from "@/lib/scoringPrompt";
+import { PROVIDERS, type Lead, type Provider, type ScoreResponse } from "@/lib/scoringPrompt";
 
 // ════════════════════════════════════════════════════════════════
 //  CUSTOMIZE THIS FORM
@@ -24,11 +24,12 @@ const EMPTY_LEAD: Lead = {
 };
 
 type Props = {
-  onResult: (result: ScoreResult) => void;
+  onResult: (result: ScoreResponse) => void;
 };
 
 export function LeadForm({ onResult }: Props) {
   const [lead, setLead] = useState<Lead>(EMPTY_LEAD);
+  const [provider, setProvider] = useState<Provider>("openai");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -45,14 +46,14 @@ export function LeadForm({ onResult }: Props) {
       const res = await fetch("/api/score-lead", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(lead),
+        body: JSON.stringify({ ...lead, provider }),
       });
 
       const data = await res.json();
       if (!res.ok) {
         throw new Error(data.error || "Something went wrong");
       }
-      onResult(data as ScoreResult);
+      onResult(data as ScoreResponse);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
     } finally {
@@ -62,6 +63,31 @@ export function LeadForm({ onResult }: Props) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <span className="block text-sm font-medium text-gray-700 mb-2">
+          Score with
+        </span>
+        <div className="flex gap-1 p-1 bg-gray-100 rounded-lg">
+          {PROVIDERS.map((p) => {
+            const selected = provider === p.value;
+            return (
+              <button
+                key={p.value}
+                type="button"
+                onClick={() => setProvider(p.value)}
+                className={`flex-1 py-2 rounded-md text-sm font-medium transition ${
+                  selected
+                    ? "bg-white shadow text-gray-900"
+                    : "text-gray-600 hover:text-gray-900"
+                }`}
+              >
+                {p.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Field
           label="Full name"
