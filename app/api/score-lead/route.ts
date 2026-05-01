@@ -5,6 +5,19 @@ import type { Lead } from "@/lib/scoringPrompt";
 
 export const runtime = "nodejs";
 
+// ════════════════════════════════════════════════════════════════
+//  AI PROVIDER TOGGLE — change this line to switch vendors
+// ════════════════════════════════════════════════════════════════
+//  Options:
+//    "openai"     → ChatGPT (gpt-4o)
+//    "anthropic"  → Claude (claude-opus-4-7)
+//
+//  After editing, save, commit, push. Vercel auto-redeploys with the
+//  new provider. Make sure the matching API key is set in .env.local
+//  (locally) and in Vercel → Settings → Environment Variables (prod).
+// ════════════════════════════════════════════════════════════════
+const AI_PROVIDER: "openai" | "anthropic" = "openai";
+
 function isValidLead(body: unknown): body is Lead {
   if (!body || typeof body !== "object") return false;
   const required = ["fullName", "email", "company", "role", "companySize", "problem"];
@@ -30,12 +43,7 @@ export async function POST(request: Request) {
     );
   }
 
-  // AI_PROVIDER picks which model service runs the scoring.
-  //   - "openai"    (default) → OpenAI / ChatGPT
-  //   - "anthropic"           → Claude
-  // Set this in .env.local for development and in Vercel env vars for prod.
-  const provider =
-    process.env.AI_PROVIDER === "anthropic" ? "anthropic" : "openai";
+  const provider = AI_PROVIDER;
 
   // Ensure full lead with optional fields defaulted to empty strings
   const fullLead: Lead = {

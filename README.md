@@ -108,13 +108,32 @@ copy .env.example .env.local
 Open `.env.local` in your editor:
 
 - **If you're using OpenAI (default):** paste your key after `OPENAI_API_KEY=`.
-  Leave `AI_PROVIDER=openai` as is.
-- **If you're using Claude:** paste your key after `ANTHROPIC_API_KEY=` and
-  change `AI_PROVIDER=openai` to `AI_PROVIDER=anthropic`.
+- **If you're using Claude:** paste your key after `ANTHROPIC_API_KEY=` AND
+  follow the next step to flip the provider.
 
-You can fill in both keys and toggle `AI_PROVIDER` later to compare the two.
+You can fill in both keys to make switching providers a one-line change later.
 
 > The `.env.local` file is already in `.gitignore`. Never commit it.
+
+### 5b. (Optional) Switch the AI provider
+
+The default is OpenAI / ChatGPT. To use Claude instead, open
+`app/api/score-lead/route.ts` and find this line near the top of the file:
+
+```ts
+const AI_PROVIDER: "openai" | "anthropic" = "openai";
+```
+
+Change `"openai"` to `"anthropic"` and save.
+
+That's it — no other code changes needed. The form, prompt, and result UI
+all work identically with both providers.
+
+> **Why a code change instead of an env variable?** This is a teaching
+> capstone. Editing the line, committing, and seeing the redeploy is the
+> whole point — it's the same workflow you'd use to ship any production
+> change. Later in the course you'll learn to make this kind of switch
+> dynamic, but the manual flow is the foundation.
 
 ### 6. Run the app
 
@@ -243,29 +262,31 @@ Every time you `git push` to GitHub, Vercel redeploys automatically.
 ### Add your AI API key to Vercel
 
 The deployed site will load without a key, but every scoring request will
-fail until you add the key for whichever provider you're using.
+fail until you add the key for whichever provider your code is using.
 
-**Step 1 — Decide which provider** the deployed site should use. Default is
-OpenAI. To use Claude, you'll also set `AI_PROVIDER=anthropic` below.
+**Step 1 — Check which provider your code uses.** Open
+`app/api/score-lead/route.ts` and find:
+
+```ts
+const AI_PROVIDER: "openai" | "anthropic" = "openai";
+```
+
+Whichever string is there is the provider you need a key for. (You can
+add both keys if you want — only the active one is used.)
 
 **Step 2 — In Vercel, go to your project → Settings → Environment Variables.**
 
-**Step 3 — Add the variable(s) for your provider.**
+**Step 3 — Add the API key.** Click **Add New**, fill in:
 
-For each variable: click **Add New**, fill it in, and check
-**Production**, **Preview**, and **Development** so it works on every
-branch.
+| For this provider | Variable name | Value |
+|-------------------|---------------|-------|
+| OpenAI / ChatGPT | `OPENAI_API_KEY` | your `sk-...` from [platform.openai.com/api-keys](https://platform.openai.com/api-keys) |
+| Anthropic / Claude | `ANTHROPIC_API_KEY` | your `sk-ant-...` from [console.anthropic.com](https://console.anthropic.com) |
 
-| If you're using... | Add this variable | Value |
-|--------------------|-------------------|-------|
-| OpenAI / ChatGPT *(default)* | `OPENAI_API_KEY` | your `sk-...` from [platform.openai.com/api-keys](https://platform.openai.com/api-keys) |
-| Claude (Anthropic) | `ANTHROPIC_API_KEY` | your `sk-ant-...` from [console.anthropic.com](https://console.anthropic.com) |
-| Claude (Anthropic) | `AI_PROVIDER` | `anthropic` (literally that word) |
+For each variable, check **Production**, **Preview**, AND **Development**
+so it works on every branch.
 
-If you want to use OpenAI you do **not** need to set `AI_PROVIDER` — it
-defaults to `openai`. Only set it when switching to Claude.
-
-**Step 4 — Save each one.**
+**Step 4 — Save.**
 
 **Step 5 — Trigger a redeploy.** Vercel does **not** auto-redeploy when you
 change env vars:
@@ -275,9 +296,10 @@ change env vars:
 
 **Step 6 — Wait for the new build (~1-2 minutes), then test the live URL.**
 
-**Switching providers later:** to flip from OpenAI to Claude (or back), edit
-the `AI_PROVIDER` variable in Vercel (or add it if you didn't set it), make
-sure the matching API key is also there, save, and redeploy.
+**Switching providers in production:** edit
+`app/api/score-lead/route.ts`, change `"openai"` to `"anthropic"` (or back),
+commit, and push. Vercel auto-redeploys on push, so no manual redeploy
+needed. Just make sure the matching API key is already in Vercel's env vars.
 
 > **Security note:** Your API key never appears in the browser. The app keeps
 > it server-side in `app/api/score-lead/route.ts`. Anyone with your live URL
