@@ -107,13 +107,15 @@ Copy-Item .env.example .env.local
 copy .env.example .env.local
 ```
 
-Open `.env.local` in your editor:
+Open `.env.local` in your editor and paste your key(s) on the matching line:
 
-- **If you're using OpenAI (default):** paste your key after `OPENAI_API_KEY=`.
-- **If you're using Claude:** paste your key after `ANTHROPIC_API_KEY=` AND
-  follow the next step to flip the provider.
+- **OpenAI / ChatGPT:** paste after `OPENAI_API_KEY=`
+- **Anthropic / Claude:** paste after `ANTHROPIC_API_KEY=`
 
-You can fill in both keys to make switching providers a one-line change later.
+You can fill in just one or both. Whichever ones you fill in are the
+provider buttons that will work in the form's toggle. If you only paste an
+OpenAI key, the **Claude** button will return an error until you add an
+Anthropic key.
 
 > The `.env.local` file is already in `.gitignore`. Never commit it.
 
