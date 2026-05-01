@@ -1,166 +1,182 @@
 # Maintainer notes
 
-This file is for the person maintaining this capstone repo (Anthony / course
-operator). Students do not need to read this — they only need `README.md`.
+This file is for the person running the course (Anthony) and anyone helping
+operate this capstone repo. Students do not need to read this — they only
+need `README.md`.
 
 ---
 
 ## What this repo is
 
-A Next.js 15 + Claude API capstone. Students clone it, customize the business
-logic in `lib/scoringPrompt.ts`, push to their own GitHub, and deploy on Vercel.
+A Next.js 15 + TypeScript capstone where students:
 
-**Stack**
-- Next.js 15.5, React 19, TypeScript, Tailwind CSS
-- Two AI providers behind a `lib/providers/` abstraction:
-  - `openai` (default — `gpt-4o`)
-  - `anthropic` (Claude — `claude-opus-4-7`)
-- Vercel for hosting
+1. Clone the repo
+2. Customize the business logic in `lib/scoringPrompt.ts`
+3. Pick an AI provider (OpenAI or Anthropic) by editing one line of code
+4. Add an API key locally and on Vercel
+5. Deploy and watch their tool score real-looking leads
 
-**Provider toggle:** `process.env.AI_PROVIDER` picks the implementation at
-request time. Defaults to `openai` if unset. Each provider only requires its
-own key (`OPENAI_API_KEY` or `ANTHROPIC_API_KEY`); students can have only
-one set and the other path will throw a clean error if they try to use it.
-
-**Structured output strategy:** both providers use **forced single-function
-tool use** (`tool_choice: { type: "function", function: { name: "submit_score" } }`
-on OpenAI, `tool_choice: { type: "tool", name: "submit_score" }` on Anthropic).
-The function's input schema IS the result shape, so we get reliable JSON
-without prompting tricks. Single source of truth: `SCORE_RESULT_SCHEMA` in
-`lib/scoringPrompt.ts` — both providers consume the same schema.
-
-**Prompt caching (Anthropic only):** the system prompt is wrapped in a text
-block with `cache_control: { type: "ephemeral" }` so repeat Claude calls hit
-the cache. OpenAI's automatic prompt caching kicks in transparently for
-prompts ≥1024 tokens — no client-side flag needed.
+The **intention** is to teach the full ship-a-real-thing loop — form,
+prompt, AI response, business logic, env vars, GitHub, Vercel, browser
+testing — using the smallest viable surface area. No database, no auth,
+no dashboard, no CRM integration. One page, one form, one prompt.
 
 ---
 
-## How students use it
+## Stack
 
-1. `git clone https://github.com/aricciuser/ai-lead-intake-scorer.git`
-2. `cd ai-lead-intake-scorer && npm install`
-3. Copy `.env.example` to `.env.local` and add their Claude API key
-4. `npm run dev` and test in the browser
-5. Edit `lib/scoringPrompt.ts` to customize for their business
-6. Push to their own GitHub repo, deploy on Vercel
+| Layer | Choice |
+|-------|--------|
+| Framework | Next.js 15.5 (App Router) |
+| Language | TypeScript |
+| UI | React 19, Tailwind CSS |
+| AI providers | OpenAI (`gpt-4o`) and Anthropic (`claude-opus-4-7`) |
+| Hosting | Vercel |
+| CI / dependency updates | Dependabot + quarterly remote Claude Code routine |
 
-The full step-by-step is in `README.md` — including Mac, Windows PowerShell,
-and CMD command variants for the env-file copy step.
+---
+
+## Architecture
+
+### Provider abstraction
+
+Both AI vendors live behind a small interface so the rest of the app stays
+provider-agnostic:
+
+```
+app/api/score-lead/route.ts          ← picks the provider via constant
+└── lib/providers/
+    ├── openai.ts                    ← scoreLeadWithOpenAI(lead)
+    ├── anthropic.ts                 ← scoreLeadWithAnthropic(lead)
+    └── types.ts                     ← shared ScoreLeadFn signature
+```
+
+The toggle is a typed constant at the top of `route.ts`:
+
+```ts
+const AI_PROVIDER: "openai" | "anthropic" = "openai";
+```
+
+To switch vendors: edit the string, commit, push. Vercel auto-redeploys.
+The matching API key (`OPENAI_API_KEY` or `ANTHROPIC_API_KEY`) must already
+be set in Vercel's env vars.
+
+### Structured output
+
+Both providers use **forced single-function tool use** against the same
+JSON schema (`SCORE_RESULT_SCHEMA` in `lib/scoringPrompt.ts`). The function's
+input arguments are the result shape, so the API returns reliable JSON
+without any prompt-engineering for output format. Single source of truth
+for the schema; both providers consume it.
+
+### Prompt caching
+
+The Anthropic path wraps the system prompt in a text block with
+`cache_control: { type: "ephemeral" }`. OpenAI's automatic prompt caching
+covers the same case server-side (no client-side flag needed).
+
+### Customization surface
+
+Students are intended to edit only one file for basic customization:
+`lib/scoringPrompt.ts`. It contains a clearly-marked CUSTOMIZE banner and
+exports business-specific constants (`COMPANY`, `TARGET_CUSTOMER`,
+`BUYING_SIGNALS`, etc.). The prompt builder consumes these, so editing
+the constants is enough to retarget the scorer for any business.
+
+The form (`components/LeadForm.tsx`) and result UI
+(`components/LeadResult.tsx`) are also customization-friendly but require
+matching changes to the `Lead` type and `buildUserPrompt()` if fields are
+added or renamed.
 
 ---
 
 ## Deploying to Vercel
 
-This is the path you (or a student) follow to put a customized version online.
-
 1. Sign in to [vercel.com](https://vercel.com) with GitHub.
-2. **Add New → Project**, pick the GitHub repo (yours or the student's fork).
+2. **Add New → Project**, pick the GitHub repo.
 3. Vercel auto-detects Next.js. Don't change framework, root, or build command.
-4. **Critical step before deploy:** expand **Environment Variables** and add:
-   - **Key:** `ANTHROPIC_API_KEY`
-   - **Value:** the `sk-ant-...` key from
-     [console.anthropic.com](https://console.anthropic.com)
-   - **Environment:** check all three (Production, Preview, Development)
+4. Expand **Environment Variables** and add the API key for whichever
+   provider `AI_PROVIDER` is set to in `app/api/score-lead/route.ts`:
+   - `OPENAI_API_KEY` (default — value starts with `sk-...`)
+   - `ANTHROPIC_API_KEY` (if `AI_PROVIDER` is `"anthropic"` — value starts
+     with `sk-ant-...`)
+   - Apply to **Production**, **Preview**, AND **Development**
 5. Click **Deploy**. First build takes 1-2 minutes.
-6. You get a public URL like `your-project.vercel.app`.
 
-**Subsequent deploys are automatic.** Every `git push` to the connected branch
-triggers a redeploy. No CLI, no manual step.
+Subsequent deploys are automatic on every `git push` to the connected branch.
 
-**If the live site says "Server is missing ANTHROPIC_API_KEY":** the build
-deployed but the env var isn't set (or isn't applied to the right environment).
-Fix:
+**If the live site says "Missing OPENAI_API_KEY" or "Missing
+ANTHROPIC_API_KEY":**
 1. Project → **Settings → Environment Variables**
-2. Add (or edit) `ANTHROPIC_API_KEY` with the `sk-ant-...` value
-3. Check **Production**, **Preview**, AND **Development**
-4. Save, then go to **Deployments** → most recent → **⋯ → Redeploy**
-   (Vercel does NOT auto-redeploy on env var changes — students will hit
-   this. Same fix for them.)
+2. Add (or edit) the missing key, applied to all three environments
+3. **Deployments → most recent → ⋯ → Redeploy** (Vercel does NOT
+   auto-redeploy on env var changes — students will hit this)
 
-The student-facing version of these steps is in `README.md` under
-**Add your Claude API key to Vercel**.
-
-**Cost note:** Vercel Hobby tier is free and works fine for student traffic.
-Each lead scoring call costs a few cents on the Anthropic side — Anthropic
-gives free credits on signup, but watch usage in the console.
+The student-facing version of these steps is in `README.md`.
 
 ---
 
-## Dependency hygiene (two layers)
+## Dependency hygiene
 
-Students should never see deprecation warnings or security advisories on
-deploy. Two automated layers protect against that:
+Two layers protect the repo from rotting between cohorts:
 
 ### Layer 1 — Dependabot (immediate, security-focused)
 
 `.github/dependabot.yml` is configured so GitHub:
 - Opens a PR within hours of any **security advisory** affecting our deps
-- Opens a weekly grouped PR for routine minor/patch bumps (capped at 5 open
-  PRs at a time)
+- Opens a weekly grouped PR for routine minor/patch bumps (capped at 5
+  open PRs at a time)
 
-This is what catches CVEs like the Next.js 15.1.6 → 15.5.x bump that hit on
-day one. To confirm Dependabot is active, go to the repo on GitHub →
-**Settings → Code security → Dependabot alerts** and **Dependabot security
-updates** should both be enabled (they are by default on public repos).
+Verify both **Dependabot alerts** and **Dependabot security updates** are
+enabled at: repo → **Settings → Code security**. Both default to on for
+public repos.
 
-### Layer 2 — Quarterly Claude Code routine (drift catcher)
+### Layer 2 — Quarterly Claude Code routine
 
-A remote Claude Code agent runs **quarterly** to keep dependencies fresh so
-the repo doesn't rot for future student cohorts. This is the backup for
-non-security drift that Dependabot's grouped PR misses or that you closed
-without merging.
+A remote Claude Code agent runs on the first day of January, April, July,
+and October at 17:00 UTC (10am Pacific) to keep dependencies fresh.
 
 - **Routine name:** `ai-lead-intake-scorer: quarterly dependency check`
 - **Routine ID:** `trig_016oBENATmG11cyDsSLsRJbU`
-- **Schedule:** First day of January, April, July, October at 17:00 UTC
-  (10am Pacific). Cron: `0 17 1 1,4,7,10 *`
+- **Cron:** `0 17 1 1,4,7,10 *`
 - **Manage at:** https://claude.ai/code/routines/trig_016oBENATmG11cyDsSLsRJbU
-- **What it does:**
-  1. Clones this repo
-  2. Reads `package.json`, checks npm for latest `next` and `@anthropic-ai/sdk`
-  3. If both are current → exits silently, no PR
-  4. If either is newer → creates a `deps/quarterly-bump-YYYY-MM-DD` branch,
-     bumps the version, runs `npm install` and `npx next build` to verify,
-     then opens a PR
-  5. If the build fails after the bump → does NOT open a PR, exits with the
-     error so it can be reviewed manually
-- **What it does NOT touch:** any other dependency, the source code, the
-  `main` branch directly, or the production deploy. The agent's worst-case
-  output is a PR you can close without merging.
 
-To pause it (e.g. during a course freeze), open the routine in the link above
-and toggle it off. To delete, use the same URL — there is no API for delete.
+The routine clones the repo, checks npm for newer `next`,
+`@anthropic-ai/sdk`, and `openai`, and only opens a PR if the production
+build still passes after the bump. Worst case: a PR you can close without
+merging. The agent cannot touch `main` directly or modify other dependencies.
+
+To pause (e.g. during a course freeze), open the routine link and toggle
+it off. To delete, use the same URL — there is no API for delete.
 
 ---
 
 ## Updating the repo for a new cohort
 
-When you want to refresh the repo before a new student cohort:
+Before each cohort:
 
 1. Pull the latest:
    ```bash
    git pull origin main
    ```
-2. Check if any open dependency-bump PRs are waiting (from the routine above).
-   Merge or close them.
-3. Run a smoke test:
+2. Merge or close any open Dependabot or quarterly-routine PRs.
+3. Smoke-test:
    ```bash
    rm -rf .next node_modules
    npm install
    npx next build
    ```
-4. Optionally verify a live scoring call by adding your key to `.env.local` and
-   running `npm run dev`.
-5. If you changed anything, commit and push.
+4. Optionally verify a live scoring call by adding a key to `.env.local`,
+   running `npm run dev`, and submitting a test lead through the UI.
+5. Commit any updates and push.
 
 ---
 
 ## Things to leave alone
 
-- **Don't add a database, auth, or user accounts.** This is intentionally a
-  one-page tool. The course's framing is "this is your first working tool, not
-  the final one" — adding complexity here would defeat that.
+- **Don't add a database, auth, or user accounts.** This is intentionally
+  a one-page tool. The course's framing is "this is your first working
+  tool, not the final one" — adding complexity here would defeat that.
 - **Don't downgrade the models** (`gpt-4o` and `claude-opus-4-7`) unless a
   course-cost issue forces it. Follow-up message quality is what makes the
   demo feel real to students; weaker models produce visibly worse output.
@@ -173,22 +189,59 @@ When you want to refresh the repo before a new student cohort:
 
 ---
 
-## Lessons learned
+## Future enhancements
 
-- **Day-one CVE on Next.js 15.1.6.** The initial scaffold pinned
-  `"next": "15.1.6"` (exact version). Vercel deployed but flagged
-  CVE-2025-66478 with "Action Required". Fix: bumped to `^15.5.15` (caret
-  range, latest stable in the same major) and added Dependabot. Keeping a
-  caret range plus Dependabot means the next CVE gets a PR auto-opened
-  before any student notices.
-- **Don't pin exact versions in a student repo.** Pinning is good for
-  reproducible builds in production app code; for a teaching repo it just
-  guarantees students will eventually `npm install` something flagged as
-  vulnerable. Use `^` ranges and let Dependabot keep the lockfile fresh.
+Backlog of intentional next steps for future course iterations. None of
+these are needed for the current capstone to work — they're upgrades for
+later cohorts or follow-on lessons.
+
+### Provider toggle in the UI
+
+Today students switch providers by editing
+`app/api/score-lead/route.ts` and redeploying. A future version could add a
+small toggle in the form (`ChatGPT` / `Claude` buttons) so the running app
+demonstrates the switch live without a code change.
+
+**Why later, not now:** the manual edit-commit-deploy loop is the lesson
+in the current cohort. The UI toggle is a follow-on lesson on how to make
+runtime configuration explicit instead of hidden in code.
+
+### Side-by-side comparison mode
+
+A "Score with both" button that fires parallel requests to OpenAI and
+Anthropic and shows the two results next to each other. Useful for course
+demos where the contrast between vendors is the point.
+
+### Workflow-determined provider switching
+
+Take it further: the app picks the provider automatically based on rules
+(cost cap, time of day, lead source, etc.) using a separate routing layer.
+This is the natural lesson after the manual toggle and the UI toggle —
+the progression goes:
+
+1. Hardcoded in code *(current)*
+2. Toggle in the UI
+3. Rule-based switch in code
+4. External orchestration (AI gateway / router)
+
+Each step earns the next one.
+
+### Other ideas
+
+- Save scored leads to a persistent store (Vercel KV or Postgres) and
+  show a history page — this is the natural intro to "your first
+  database" lesson.
+- Add a Resend integration so the draft follow-up message can be sent
+  directly from the result screen.
+- A `compare-prompts` mode where the student edits their prompt and the
+  app re-scores the same lead with the old vs. new prompt side by side,
+  to teach prompt iteration.
+
+---
 
 ## Repo metadata
 
 - Public GitHub repo: https://github.com/aricciuser/ai-lead-intake-scorer
-- License: not currently set (consider adding MIT before broad student release
-  if you want students to legally remix and republish)
+- License: not currently set (consider adding MIT before broad student
+  release if you want students to legally remix and republish)
 - Maintainer: aricciuser

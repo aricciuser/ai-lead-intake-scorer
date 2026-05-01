@@ -80,6 +80,10 @@ Desktop.ini
 *.sublime-workspace
 *.sublime-project
 
+# AI ASSISTANT LOCAL SETTINGS
+.claude/settings.local.json
+.cursor/
+
 # PYTHON (if applicable)
 __pycache__/
 *.py[cod]
