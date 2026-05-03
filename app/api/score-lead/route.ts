@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { scoreLeadWithAnthropic } from "@/lib/providers/anthropic";
 import { scoreLeadWithOpenAI } from "@/lib/providers/openai";
 import type { Lead, Provider } from "@/lib/scoringPrompt";
+import { isUnlocked, isPasswordConfigured } from "@/lib/auth";
+import { checkDailyCap, checkRateLimit, getClientIp } from "@/lib/rateLimit";
 
 export const runtime = "nodejs";
 
@@ -35,6 +37,32 @@ function isValidLead(body: unknown): body is Lead {
 }
 
 export async function POST(request: Request) {
+  // ─────────────── Auth ───────────────
+  // Demo only runs after the visitor has unlocked it with the password.
+  // The cookie is set by POST /api/unlock — never accept a password on this
+  // endpoint, and never run an LLM call without a verified cookie.
+  if (isPasswordConfigured() && !(await isUnlocked())) {
+    return NextResponse.json(
+      { error: "Demo locked. Enter the page password to enable scoring." },
+      { status: 401 },
+    );
+  }
+
+  // ─────────────── Per-IP rate limit ───────────────
+  const ip = getClientIp(request.headers);
+  const rl = checkRateLimit(ip);
+  if (!rl.ok) {
+    const headers: Record<string, string> = {};
+    if (rl.retryAfterSec) headers["Retry-After"] = String(rl.retryAfterSec);
+    return NextResponse.json({ error: rl.reason }, { status: rl.status, headers });
+  }
+
+  // ─────────────── Daily cost cap ───────────────
+  const cap = checkDailyCap();
+  if (!cap.ok) {
+    return NextResponse.json({ error: cap.reason }, { status: cap.status });
+  }
+
   let body: unknown;
   try {
     body = await request.json();

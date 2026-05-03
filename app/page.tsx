@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { LeadForm } from "@/components/LeadForm";
 import { LeadResult } from "@/components/LeadResult";
+import { UnlockGate } from "@/components/UnlockGate";
 import { COMPANY } from "@/lib/scoringPrompt";
 import type { ScoreResponse } from "@/lib/scoringPrompt";
 
@@ -22,6 +23,8 @@ export default function Home() {
             ready-to-send follow up.
           </p>
         </header>
+
+        <UnlockGate />
 
         {result ? (
           <LeadResult result={result} onReset={() => setResult(null)} />
