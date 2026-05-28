@@ -8,32 +8,36 @@
 // ════════════════════════════════════════════════════════════════
 
 export const COMPANY = {
-  name: "Acme Consulting",
-  whatYouDo: "We help small B2B SaaS companies fix their onboarding flow.",
+  name: "SIFTR",
+  whatYouDo: `We build software. We automate everything. From concept to launch.
+We build AI-powered workflows, full-stack applications, and automated pipelines
+that eliminate busywork and multiply your team's output.`,
 };
 
 export const TARGET_CUSTOMER = `
 Our ideal customer is:
-- A B2B SaaS company with 10 to 100 employees
-- $1M to $20M in annual revenue
-- Has at least 100 paying customers
-- Is losing customers in the first 30 days after signup
+- A business drowning in manual, repetitive work that should be automated
+- Has a specific process, workflow, or app they want built or streamlined
+- Decision maker or operator who feels the pain directly (Founder, COO, Ops lead)
+- Has budget to invest in custom software or automation (not looking for free)
+- Wants to ship something real, from concept to launch, not just talk
 `.trim();
 
 export const BUYING_SIGNALS = [
-  "Mentions a specific drop-off problem (trial, onboarding, activation)",
+  "Names a specific manual process, workflow, or app they want built or automated",
+  "Describes busywork, repetitive tasks, or tools that don't talk to each other",
   "Has a budget range or timeline in mind",
-  "Decision maker (Founder, CEO, Head of Growth, VP Product)",
-  "Says they have tried something already and it did not work",
+  "Decision maker or operator who owns the problem (Founder, CEO, COO, Ops lead)",
+  "Has tried to fix it before (spreadsheets, Zapier, hiring) and hit a wall",
   "Has a real company email (not gmail/yahoo/hotmail)",
 ];
 
 export const POOR_FIT_SIGNALS = [
-  "Pre-revenue or fewer than 50 customers",
-  "Just looking, no specific problem",
+  "Just browsing, no specific process or project in mind",
   "Asks for free work or a discount before scoping",
-  "B2C company",
-  "Wants something we do not do (web design, ads, SEO)",
+  "Wants something we do not do (ads, SEO, paid media, pure design work)",
+  "No budget and no authority to spend",
+  "Wants a quick template or DIY tool, not a built solution",
 ];
 
 // Score buckets and what they mean. The AI will pick a label based on
