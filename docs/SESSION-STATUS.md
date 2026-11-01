@@ -1,5 +1,56 @@
 # Session Status
 
+## Session — 2026-07-01
+
+### Focus
+Review and accept the latest dependency update from GitHub.
+
+### What we did
+
+**Merged the quarterly dependency bump (PR #7).**
+- PR #7 "Quarterly dependency bump (2026-07-01)" was open, not yet on `main`.
+  Vercel preview check passed; diff was deps + framework-generated config only
+  (no app code). Reviewed and approved.
+- Version changes:
+  | Package | Old | New | |
+  |---|---|---|---|
+  | `next` | 15.5.15 | 16.2.9 | **major** |
+  | `@anthropic-ai/sdk` | 0.65.0 | 0.109.0 | minor |
+  | `openai` | 6.35.0 | 6.45.0 | minor |
+- Plus Next 16 auto-edits: `tsconfig.json` (`jsx: preserve → react-jsx`,
+  added `.next/dev/types/**/*.ts` to include) and `next-env.d.ts` (reference
+  style). Both framework-managed.
+- Merged via `gh pr merge 7 --merge --delete-branch` (merge commit `ee45306`).
+  Pushing/merging to `main` auto-deploys to production.
+- Pulled `main` down locally. Fast-forward failed (local WIP snapshot had
+  diverged from same base), so rebased the WIP commit onto the new `main` —
+  clean, WIP only touches `.gitignore`/`SESSION-STATUS.md`.
+- Ran `npm ci` to sync `node_modules` to the new lockfile.
+- Verified `npm run build` green locally on Next 16.2.9 — all 6 routes
+  resolved, 7 static pages generated.
+
+### Open items / known issues
+- **2 moderate npm audit vulns**, both transitive `postcss <8.5.10` via Next
+  (XSS in CSS stringify output). `npm audit fix --force` would downgrade next
+  to 9.3.3 — **do NOT run it.** Real fix floats up in a future Next 16 patch;
+  low risk here. Leave for next quarterly bump.
+- **Local WIP snapshot (`dcce764`) is unpushed** — origin/main does not have it.
+- **Stale dep PRs still open:** #2 (typescript 6), #3 (tailwind 4),
+  #6 (minor-and-patch group). #4 (next 16.2.4) is now superseded by #7 and can
+  be closed.
+
+### Files touched
+- `package.json`, `package-lock.json` — new dep versions (via merge)
+- `tsconfig.json`, `next-env.d.ts` — Next 16 auto-migration (via merge)
+
+### Next steps / to revert
+- Optionally push local `main` so the WIP snapshot lands on origin.
+- Optionally confirm the production deploy went green and close stale dep PRs.
+- **To revert the bump:** `git revert ee45306` (the merge commit) and push,
+  or reset `main` to `941e3df` before the merge.
+
+---
+
 ## Session — 2026-05-28
 
 ### Focus
